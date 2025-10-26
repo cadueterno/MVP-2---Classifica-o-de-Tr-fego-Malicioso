@@ -1,4 +1,4 @@
-# MVP - Classificação de Tráfego Malicioso (CICIDS2017)
+# MVP 2 - Classificação de Tráfego Malicioso (CICIDS2017)
 
 
 ---
