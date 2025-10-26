@@ -77,9 +77,171 @@ Análise de correlação e importância de atributos usando Random Forest Featur
 * Hiperparâmetros foram otimizados via GridSearchCV, com validação cruzada.
 * Possibilidade futura de ensembles combinando múltiplos modelos.
 
+## 4. Código Colab
+
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Projeto CICIDS2017 - Classificação de Tráfego Malicioso\n",
+    "**Autor:** Carlos Eduardo Silva dos Santos\n",
+    "\n",
+    "Relatório para execução de Machine Learning."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Importação de bibliotecas" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from sklearn.preprocessing import StandardScaler, LabelEncoder\n",
+    "from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score\n",
+    "from google.colab import files\n",
+    "import joblib" 
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Upload do dataset CICIDS2017" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "print(\"Faça o upload do arquivo CICIDS2017.csv\")\n",
+    "uploaded = files.upload()\n",
+    "data = pd.read_csv(next(iter(uploaded.keys())))\n",
+    "print(\"Dataset carregado com sucesso!\")\n",
+    "display(data.head())" 
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Limpeza e Preparação dos Dados\n",
+    "- Remoção de colunas irrelevantes\n",
+    "- Separação de atributos (X) e alvo (y)\n",
+    "- Label Encoding e padronização" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "data_clean = data.drop(['Flow ID','Source IP','Destination IP','Timestamp'], axis=1)\n",
+    "X = data_clean.drop('Label', axis=1)\n",
+    "y = data_clean['Label']\n",
+    "\n",
+    "# Label Encoding\n",
+    "le = LabelEncoder()\n",
+    "y_enc = le.fit_transform(y)\n",
+    "\n",
+    "# Padronização\n",
+    "scaler = StandardScaler()\n",
+    "X_scaled = scaler.fit_transform(X)\n",
+    "\n",
+    "# Separação treino/teste\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X_scaled, y_enc, test_size=0.2, stratify=y_enc, random_state=42)\n",
+    "print(\"Treino e teste separados!\")" 
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Criação de classe POO para treino e avaliação de modelos" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "class MLClassifier:\n",
+    "    def __init__(self, model, param_grid, cv):\n",
+    "        self.model = model\n",
+    "        self.param_grid = param_grid\n",
+    "        self.cv = cv\n",
+    "        self.grid = None\n",
+    "\n",
+    "    def train(self, X_train, y_train):\n",
+    "        self.grid = GridSearchCV(self.model, self.param_grid, cv=self.cv, scoring='accuracy', n_jobs=-1)\n",
+    "        self.grid.fit(X_train, y_train)\n",
+    "        print('=== Treinamento concluído ===')\n",
+    "        print('Melhores hiperparâmetros:', self.grid.best_params_)\n",
+    "        print('Acurácia média CV:', self.grid.best_score_)\n",
+    "\n",
+    "    def evaluate(self, X_test, y_test):\n",
+    "        y_pred = self.grid.predict(X_test)\n",
+    "        print('=== Classification Report ===')\n",
+    "        print(classification_report(y_test, y_pred))\n",
+    "        print('=== Confusion Matrix ===')\n",
+    "        print(confusion_matrix(y_test, y_pred))\n",
+    "        try:\n",
+    "            if hasattr(self.grid.best_estimator_, 'predict_proba'):\n",
+    "                print('ROC-AUC Score:', roc_auc_score(y_test, self.grid.predict_proba(X_test)[:,1]))\n",
+    "        except: pass" 
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Treinamento do Random Forest" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "rf_model = RandomForestClassifier(random_state=42)\n",
+    "param_grid_rf = {\n",
+    "    'n_estimators':[100,200],\n",
+    "    'max_depth':[10,20],\n",
+    "    'min_samples_split':[2,5]\n",
+    "}\n",
+    "cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n",
+    "rf_classifier = MLClassifier(rf_model, param_grid_rf, cv)\n",
+    "rf_classifier.train(X_train, y_train)\n",
+    "rf_classifier.evaluate(X_test, y_test)" 
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Salvar modelo treinado" 
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {},
+   "source": [
+    "joblib.dump(rf_classifier.grid.best_estimator_, 'random_forest_cicids.pkl')\n",
+    "print('Modelo salvo como random_forest_cicids.pkl')" 
+   ]
+  }
+ ]
+}
+
 ---
 
-## 4. Avaliação de Resultados
+## 5. Avaliação de Resultados
 
 * **Métricas utilizadas:** Accuracy, F1-score, Confusion Matrix, ROC-AUC.
 * Treinamento feito com toda a base de treino e teste na base de teste.
