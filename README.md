@@ -88,7 +88,7 @@ Análise de correlação e importância de atributos usando Random Forest Featur
     "# Projeto CICIDS2017 - Classificação de Tráfego Malicioso\n",
     "**Autor:** Carlos Eduardo Silva dos Santos\n",
     "\n",
-    "Relatório para execução de Machine Learning."
+    "Este notebook funciona como relatório acadêmico detalhado para Google Colab, com células de texto explicando cada etapa do projeto e células de código para execução de Machine Learning."
    ]
   },
   {
@@ -238,6 +238,7 @@ Análise de correlação e importância de atributos usando Random Forest Featur
   }
  ]
 }
+
 
 ---
 
